@@ -1,0 +1,43 @@
+version: "3"
+networks:
+  internal:
+
+services:
+  banco-clj-hml:
+    build:
+      context: .
+    ports:
+      - 3033:3000
+    environment:
+      - DATABASE_URL="postgres://banco-clj-db-dev:5432/lab_banco?user=root&password=postgres"
+      - TEST_DATABASE_URL="postgres://banco-clj-db-dev:5432/lab_banco?user=root&password=postgres"
+    networks:
+      - internal
+  banco-clj-db-src:
+    build:
+      context: ./docker/
+      dockerfile: ./Dockerfile.pg-src
+    restart: always
+    volumes:
+      - ./pgdata-src/:/var/lib/postgresql/data
+    ports:
+      - 5433:5432
+    environment:
+      POSTGRES_DB: lab_banco
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: postgres
+    networks:
+      - internal
+  banco-clj-db-target:
+    build:
+      context: ./docker/
+      dockerfile: ./Dockerfile.pg-target
+    restart: always
+    volumes:
+      - ./pgdata-target/:/var/lib/postgresql/data
+    ports:
+      - 5434:5432
+    environment:
+      POSTGRES_DB: lab_banco
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: postgres
