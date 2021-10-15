@@ -18,53 +18,35 @@
 
 (def queries
   (->>
-   {:dm_departamentos
-    {:src                       ["select d.nome_dpto, d.cod_dpto as sg_cod_dpto from departamentos d"]
-     :sg-nk-keys                 ["sg_cod_dpto"]
+   {:dm_departamento
+    {:src                       ["select d.cod_dpto, d.nome_dpto from departamento d"]
+     :sg-nk-keys                 ["cod_dpto"]
      :transform-fns []}
-    :dm_cursos
-    {:src                       ["select cod_curso as sg_cod_curso, nom_curso as nome_curso, cod_dpto as sg_cod_dpto_fk from cursos"]
-     :sg-nk-keys                 ["sg_cod_curso" "sg_cod_dpto_fk"]
+    :dm_professor
+    {:src                       ["select p.mat_prof, p.nome_prof, p.titulo,
+                                    p.endereco, p.cod_dpto_fk from professor p "]
+     :sg-nk-keys                 ["mat_prof"]
      :transform-fns []}
-    :dm_alunos
-    {:src                       ["select mat_alu as sg_mat_aluno, nome, cotista, m.faltas from alunos
-                                    join matriculas m using(mat_alu)"]
-     :sg-nk-keys                 ["sg_mat_aluno"]
+    :dm_curso
+    {:src                       ["select cod_curso as cod_dm_curso, desc_curso as desc_dm_curso,
+                                    num_cred_curso as num_cred_dm_curso, cod_dpto_fk, duracao_normal from curso"]
+     :sg-nk-keys                 ["cod_dm_curso"]
      :transform-fns []}
-    :dm_tempo
-    {:src                        ["select m.semestre as temp_semestre_desde_inicio, (select * from
-                                        (select DAT_ENTRADA from ALUNOS order by DAT_ENTRADA asc) as temp
-                                    LIMIT 1) as temp_dat_inicio_sistema
-                                        from matriculas m"]
-     :sg-nk-keys                  ["ano" "semestre"]
-     :transform-fns [t/descobre-ano-semestre t/rm-temp-cols]}
-    :dm_disciplinas
-    {:src                       ["select cod_disc as sg_cod_disciplina, nome_disc, nota, status,
-                                        c.cod_curso as sg_cod_curso_fk
-                                    from disciplinas d
-                                    join matriculas m using(cod_disc)
-                                    join matrizes_cursos mc using(cod_disc)
-                                    join cursos c on c.cod_curso = mc.cod_curso"]
-     :sg-nk-keys                 ["sg_cod_disciplina"]
-     :transform-fns []}
-    :ft_matriculados
-    {:src                       ["select a.mat_alu as mat_aluno_fk, m.cod_disc cod_disciplina_fk, m.faltas as temp_faltas, m.semestre as temp_semestre_desde_inicio, m.nota as temp_nota, d.carga_horaria as temp_carga_horaria
-,(select * from
-                                        (select DAT_ENTRADA from ALUNOS order by DAT_ENTRADA asc) as temp
-                                    LIMIT 1) as temp_dat_inicio_sistema
-                                    from matriculas m join alunos a using(mat_alu)
-                                    join disciplinas d using(cod_disc)"]
-     :sg-nk-keys                 ["mat_aluno_fk" "cod_disciplina_fk" "semestre" "ano"]
-     :transform-fns [t/descobre-ano-semestre t/rm-temp-cols]}
-    :ft_reprovados
-    {:src                       ["select a.mat_alu as mat_aluno_fk, m.cod_disc cod_disciplina_fk, m.faltas as temp_faltas, m.semestre as temp_semestre_desde_inicio, m.nota as temp_nota, d.carga_horaria as temp_carga_horaria
-,(select * from
-                                        (select DAT_ENTRADA from ALUNOS order by DAT_ENTRADA asc) as temp
-                                    LIMIT 1) as temp_dat_inicio_sistema
-                                    from matriculas m join alunos a using(mat_alu)
-                                    join disciplinas d using(cod_disc)"]
-     :sg-nk-keys                 ["mat_aluno_fk" "cod_disciplina_fk" "semestre" "ano"]
-     :transform-fns [t/descobre-ano-semestre t/filtra-aprovado t/rm-temp-cols]}}
+    :ft_prod_professor
+    {:src                       ["select (select count(mat_alu) /
+                                        (select count(1) from (select distinct EXTRACT(YEAR from ano_ingresso)::bigint as temp_ano,
+                                        (CASE WHEN EXTRACT(QUARTER from ano_ingresso)::bigint <= 2 THEN 1
+                                                WHEN EXTRACT(QUARTER from ano_ingresso)::bigint > 2 THEN 2
+                                        END) as temp_semestre from aluno
+                                    join turma t2 on aluno.mat_alu = t2.mat_alu_fk
+                                    join professor p2 on t2.id_prof_fk = p2.mat_prof
+                                            ) as periodos)
+                                            as qtd_periodos
+                                        from aluno) as alunos_por_periodo,
+                                        ((select count(1) from aluno where nota > 7) / (select count(1) from aluno))
+                                            as percent_alunos_aprovados, mat_prof from professor "]
+     :sg-nk-keys                 ["mat_prof"]
+     :transform-fns []}}
    (into {} (map (fn [[k v]] [k (assoc v :self-reference k)])))))
 
 (defn insert-or-update!
@@ -106,21 +88,12 @@
   (shutdown-agents))
 
 (comment
-  (run! insert-dm (select-keys queries [:dm_alunos :dm_cursos]))
 
-  (insert-dm (:dm_departamentos queries))
+  (insert-dm (:dm_departamento queries))
+  (insert-dm (:dm_curso queries))
+  (insert-dm (:dm_professor queries))
 
-  (insert-dm (:dm_cursos queries))
-
-  (insert-dm (:dm_disciplinas queries))
-
-  (insert-dm (:dm_alunos queries))
-
-  (insert-dm (:dm_tempo queries))
-
-  (insert-dm (:ft_reprovados queries))
-
-  (insert-dm (:ft_matriculados queries))
+  (insert-dm (:ft_prod_professor queries))
 
   (-main)
 

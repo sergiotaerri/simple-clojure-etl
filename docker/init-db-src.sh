@@ -3,101 +3,78 @@ set -euo pipefail
 
 # Por SQL de inicializacao de script aqui
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-    CREATE TABLE alunos (
-        mat_alu       NUMERIC(10) NOT NULL,
-        nome          VARCHAR(100) NOT NULL,
-        dat_entrada   DATE NOT NULL,
-        cod_curso     NUMERIC(3) NOT NULL,
-        cotista       CHAR(1) NOT NULL
-    );
+    CREATE TABLE DISCIPLINA (
+        COD_DISC NUMERIC(4) NOT NULL,
+        NOME_DISC VARCHAR(255) NOT NULL,
+        NUM_CRED_DISC NUMERIC(3) NOT NULL,
+        NATUREZA CHAR(1) NOT NULL,
+        ID_CURSO_FK NUMERIC(4) NOT NULL,
+        PRIMARY KEY (COD_DISC));
 
-    ALTER TABLE alunos ADD CONSTRAINT alu_fk PRIMARY KEY ( mat_alu );
+    CREATE TABLE PROFESSOR (
+        MAT_PROF NUMERIC(10) NOT NULL,
+        NOME_PROF VARCHAR(255) NOT NULL,
+        TITULO VARCHAR(255) NOT NULL,
+        ENDERECO VARCHAR(255) NOT NULL,
+        COD_DPTO_FK NUMERIC(4) NOT NULL,
+        PRIMARY KEY (MAT_PROF));
 
-    CREATE TABLE cursos (
-        cod_curso   NUMERIC(4) NOT NULL,
-        nom_curso   VARCHAR(80) NOT NULL,
-        cod_dpto    NUMERIC(3) NOT NULL
-    );
+    CREATE TABLE ALUNO (
+        MAT_ALU NUMERIC(10) NOT NULL,
+        NOME_ALU VARCHAR(255) NOT NULL,
+        ESTADO_CIVIL VARCHAR(100) NOT NULL,
+        SEXO CHAR(1) NOT NULL,
+        ANO_INGRESSO DATE NOT NULL,
+        COD_CURSO_FK NUMERIC(3) NOT NULL,
+        NOTA NUMERIC(6, 2) NOT NULL,
+        PRIMARY KEY (MAT_ALU));
 
-    ALTER TABLE cursos ADD CONSTRAINT cur_pk PRIMARY KEY ( cod_curso );
+    CREATE TABLE CURSO (
+        COD_CURSO NUMERIC(3) NOT NULL,
+        DESC_CURSO VARCHAR(255) NOT NULL,
+        NUM_CRED_CURSO NUMERIC(4) NOT NULL,
+        COD_DPTO_FK NUMERIC(4) NOT NULL,
+        DURACAO_NORMAL VARCHAR(100) NOT NULL,
+        PRIMARY KEY (COD_CURSO));
 
-    CREATE TABLE departamentos (
-        cod_dpto    NUMERIC(3) NOT NULL,
-        nome_dpto   VARCHAR(50) NOT NULL
-    );
+    CREATE TABLE TURMA (
+        ANO NUMERIC(4) NOT NULL,
+        PERIODO NUMERIC(2) NOT NULL,
+        SALA VARCHAR(10) NOT NULL,
+        ID_PROF_FK NUMERIC(10) NOT NULL,
+        MAT_ALU_FK NUMERIC(10) NOT NULL,
+        COD_DISC_FK NUMERIC(4) NOT NULL);
 
-    ALTER TABLE departamentos ADD CONSTRAINT departamentos_pk PRIMARY KEY ( cod_dpto );
+    CREATE TABLE DEPARTAMENTO (
+        COD_DPTO NUMERIC(4) NOT NULL,
+        NOME_DPTO VARCHAR(255) NOT NULL,
+        PRIMARY KEY (COD_DPTO));
 
-    CREATE TABLE disciplinas (
-        cod_disc        NUMERIC(5) NOT NULL,
-        nome_disc       VARCHAR(60) NOT NULL,
-        carga_horaria   NUMERIC(5, 2) NOT NULL
-    );
+    ALTER TABLE CURSO ADD CONSTRAINT DPTO_FK FOREIGN KEY (COD_DPTO_FK) REFERENCES DEPARTAMENTO (COD_DPTO);
+    ALTER TABLE TURMA ADD CONSTRAINT PROF_FK FOREIGN KEY (ID_PROF_FK) REFERENCES PROFESSOR (MAT_PROF);
+    ALTER TABLE DISCIPLINA ADD CONSTRAINT CURSO_FK FOREIGN KEY (ID_CURSO_FK) REFERENCES CURSO (COD_CURSO);
+    ALTER TABLE TURMA ADD CONSTRAINT ALU_FK FOREIGN KEY (MAT_ALU_FK) REFERENCES ALUNO (MAT_ALU);
+    ALTER TABLE PROFESSOR ADD CONSTRAINT DPTO2_FK FOREIGN KEY (COD_DPTO_FK) REFERENCES DEPARTAMENTO (COD_DPTO);
+    ALTER TABLE ALUNO ADD CONSTRAINT CURSO2_FK FOREIGN KEY (COD_CURSO_FK) REFERENCES CURSO (COD_CURSO);
+    ALTER TABLE TURMA ADD CONSTRAINT DISC_FK FOREIGN KEY (COD_DISC_FK) REFERENCES DISCIPLINA (COD_DISC);
 
-    ALTER TABLE disciplinas ADD CONSTRAINT disc_pk PRIMARY KEY ( cod_disc );
+    INSERT INTO DEPARTAMENTO (COD_DPTO, NOME_DPTO) VALUES (1, 'Computação');
 
-    CREATE TABLE matriculas (
-        semestre   NUMERIC(6) NOT NULL,
-        mat_alu    NUMERIC(10) NOT NULL,
-        cod_disc   NUMERIC(5) NOT NULL,
-        nota       NUMERIC(5, 2),
-        faltas     NUMERIC(3),
-        status     CHAR(1)
-    );
+    INSERT INTO PROFESSOR (MAT_PROF, NOME_PROF, TITULO, ENDERECO, COD_DPTO_FK) VALUES (1, 'A', 'A', 'A', 1);
+    INSERT INTO PROFESSOR (MAT_PROF, NOME_PROF, TITULO, ENDERECO, COD_DPTO_FK) VALUES (2, 'B', 'A', 'B', 1);
+    INSERT INTO PROFESSOR (MAT_PROF, NOME_PROF, TITULO, ENDERECO, COD_DPTO_FK) VALUES (3, 'C', 'A', 'C', 1);
 
-    ALTER TABLE matriculas ADD CONSTRAINT mat_pk PRIMARY KEY ( mat_alu,
-                                                            semestre );
+    INSERT INTO CURSO (COD_CURSO, DESC_CURSO, NUM_CRED_CURSO, COD_DPTO_FK, DURACAO_NORMAL) VALUES (1, 'AAAA', 10, 1, '0h');
+    INSERT INTO CURSO (COD_CURSO, DESC_CURSO, NUM_CRED_CURSO, COD_DPTO_FK, DURACAO_NORMAL) VALUES (2, 'BBBB', 11, 1, '0h');
+    INSERT INTO CURSO (COD_CURSO, DESC_CURSO, NUM_CRED_CURSO, COD_DPTO_FK, DURACAO_NORMAL) VALUES (3, 'CCCC', 23, 1, '0h');
 
-    CREATE TABLE matrizes_cursos (
-        cod_curso   NUMERIC(4) NOT NULL,
-        cod_disc    NUMERIC(5) NOT NULL,
-        periodo     NUMERIC(2) NOT NULL
-    );
+    INSERT INTO DISCIPLINA (COD_DISC, NOME_DISC, NUM_CRED_DISC, NATUREZA, ID_CURSO_FK) VALUES (1, 'DDDD', 10, 'T', 1);
 
-    ALTER TABLE matrizes_cursos ADD CONSTRAINT mcu_pk PRIMARY KEY ( cod_curso,
-                                                                    cod_disc );
+    INSERT INTO ALUNO (MAT_ALU, NOME_ALU, ESTADO_CIVIL, SEXO, ANO_INGRESSO, NOTA, COD_CURSO_FK) VALUES (1, 'A', 'A', 'M', CURRENT_DATE, 8, 1);
+    INSERT INTO ALUNO (MAT_ALU, NOME_ALU, ESTADO_CIVIL, SEXO, ANO_INGRESSO, NOTA, COD_CURSO_FK) VALUES (2, 'B', 'A', 'F', CURRENT_DATE, 5, 1);
+    INSERT INTO ALUNO (MAT_ALU, NOME_ALU, ESTADO_CIVIL, SEXO, ANO_INGRESSO, NOTA, COD_CURSO_FK) VALUES (3, 'B', 'A', 'M', CURRENT_DATE, 2, 1);
 
-    ALTER TABLE alunos
-        ADD CONSTRAINT alu_cur_fk FOREIGN KEY ( cod_curso )
-            REFERENCES cursos ( cod_curso );
-
-    ALTER TABLE cursos
-        ADD CONSTRAINT cur_der_fk FOREIGN KEY ( cod_dpto )
-            REFERENCES departamentos ( cod_dpto );
-
-    ALTER TABLE matriculas
-        ADD CONSTRAINT mat_alu_fk FOREIGN KEY ( mat_alu )
-            REFERENCES alunos ( mat_alu );
-
-    ALTER TABLE matriculas
-        ADD CONSTRAINT mat_dis_fk FOREIGN KEY ( cod_disc )
-            REFERENCES disciplinas ( cod_disc );
-
-    ALTER TABLE matrizes_cursos
-        ADD CONSTRAINT mcu_cur_fk FOREIGN KEY ( cod_curso )
-            REFERENCES cursos ( cod_curso );
-
-    ALTER TABLE matrizes_cursos
-        ADD CONSTRAINT mcu_dis_fk FOREIGN KEY ( cod_disc )
-            REFERENCES disciplinas ( cod_disc );
-
-    -- Inserts
-    insert into departamentos (cod_dpto, nome_dpto)
-    values (1, 'Anti-emprego');
-    insert into cursos (COD_CURSO, NOM_CURSO, COD_DPTO)
-    VALUES (1, 'Ciência Anti-mercadológicas', 1);
-    INSERT INTO ALUNOS (MAT_ALU, NOME, DAT_ENTRADA, COD_CURSO, COTISTA)
-    VALUES (1, 'Josias Pacatau', CURRENT_DATE, 1, 'S');
-    Insert Into disciplinas (COD_DISC, NOME_DISC, CARGA_HORARIA)
-    values (1, 'Intervencionismo 1', 200);
-    Insert Into disciplinas (COD_DISC, NOME_DISC, CARGA_HORARIA)
-    values (2, 'Intervencionismo 2', 200);
-    insert into matrizes_cursos (cod_curso, cod_disc, periodo)
-    values (1, 1, 1);
-    insert into matrizes_cursos (cod_curso, cod_disc, periodo)
-    values (1, 2, 2);
-    insert into matriculas (semestre, mat_alu, cod_disc, nota, faltas, status)
-    VALUES (1, 1, 1, 9.85, 5, 'A');
-    insert into matriculas (semestre, mat_alu, cod_disc, nota, faltas, status)
-    VALUES (2, 1, 2, 6.85, 5, 'R');
+    INSERT INTO TURMA (ANO, PERIODO, SALA, ID_PROF_FK, MAT_ALU_FK, COD_DISC_FK) VALUES (2021, 1, 'B23', 1, 1, 1);
+    INSERT INTO TURMA (ANO, PERIODO, SALA, ID_PROF_FK, MAT_ALU_FK, COD_DISC_FK) VALUES (2021, 1, 'B25', 3, 2, 1);
+    INSERT INTO TURMA (ANO, PERIODO, SALA, ID_PROF_FK, MAT_ALU_FK, COD_DISC_FK) VALUES (2021, 1, 'A23', 1, 3, 1);
 EOSQL

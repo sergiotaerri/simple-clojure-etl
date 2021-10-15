@@ -1,6 +1,5 @@
 (ns lab-banco-etl.transform-test
-  (:require [clojure.instant :refer [read-instant-date]]
-            [clojure.test :refer :all]
+  (:require [clojure.test :refer :all]
             [simple-clojure-etl.transform :as sut]))
 
 (deftest pipeline
@@ -40,36 +39,6 @@
          {:not_temp 3}))))
 
 ;; Implementation specific code below
-(deftest descobre-ano-semestre
-  (testing "Year count in first semester"
-    (let [sql-date (->
-                    (read-instant-date "2021-10-08T03:00:00.000-00:00")
-                    .getTime
-                    java.sql.Date.)]
-      (is (=
-           {:temp_semestre_desde_inicio 4M,
-            :dat_inicio_sistema sql-date
-            :semestre_desde_inicio 4M,
-            :semestre 1,
-            :ano 2023}
-           (sut/descobre-ano-semestre
-            'tx {} {:temp_semestre_desde_inicio 4M
-                    :dat_inicio_sistema  sql-date})))))
-  (testing "Year count in second semester"
-    (let [sql-date (->
-                    (read-instant-date "2021-10-08T03:00:00.000-00:00")
-                    .getTime
-                    java.sql.Date.)]
-      (is (=
-           {:temp_semestre_desde_inicio 1M,
-            :dat_inicio_sistema sql-date
-            :semestre_desde_inicio 1M,
-            :semestre 2,
-            :ano 2021}
-           (sut/descobre-ano-semestre
-            'tx {} {:temp_semestre_desde_inicio 1M
-                    :dat_inicio_sistema  sql-date}))))))
-
 (deftest filtra-aprovado
   (testing "Non-passing student is returned"
     (is (=

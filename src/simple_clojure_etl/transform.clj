@@ -1,9 +1,6 @@
 (ns simple-clojure-etl.transform
-  (:require
-   [next.jdbc :as jdbc]
-   [next.jdbc.types :refer [as-date as-varchar as-numeric]]
-   [taoensso.timbre :refer [spy report]])
-  (:import (java.time LocalDate)))
+  (:require [next.jdbc.types :refer [as-date as-numeric as-varchar]]
+            [taoensso.timbre :refer [report spy]]))
 
 (defn type-processor [_ _ data]
   (into {}
@@ -33,34 +30,3 @@
         (filter (fn [[k v]] (not (re-find #"^temp_(\S+)$" (name k)))) processed-data)))
 
 ;; Implementation specific code below
-(defn semester-day-1
-  "Returns first day of semester"
-  [date]
-  (let [local-date (->
-                    date
-                    .toString
-                    LocalDate/parse
-                    (.withDayOfMonth 1))]
-    (if (< (.getMonthValue local-date) 6)
-      (.withMonth local-date 7) (.withMonth local-date 1))))
-
-(defn descobre-ano-semestre [_ _ {:keys [temp_dat_inicio_sistema temp_semestre_desde_inicio _desde_inicio] :as processed-data}]
-  (let [primeiro-dia-semestre (semester-day-1 temp_dat_inicio_sistema)
-        ano-da-matricula (+ (.getYear primeiro-dia-semestre)
-                            (Math/floor (/ temp_semestre_desde_inicio 2)))
-        semestre-da-matricula (-> primeiro-dia-semestre
-                                  (.plusMonths (* 6 temp_semestre_desde_inicio))
-                                  .getMonthValue
-                                  ((fn [m] (if  (< m 7)
-                                             1 2))))]
-    (assoc processed-data
-           :semestre_desde_inicio temp_semestre_desde_inicio
-           :semestre semestre-da-matricula
-           :ano (int ano-da-matricula))))
-
-(defn filtra-aprovado [_ _ {:keys [temp_nota temp_faltas temp_carga_horaria]
-                            :as processed-data}]
-  (if (and (>= temp_nota 7)
-           (<= (/ (* temp_faltas 100) temp_carga_horaria) 25))
-    nil
-    processed-data))
